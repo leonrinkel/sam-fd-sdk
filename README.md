@@ -5,7 +5,8 @@
 Make sure you have a proper Zephyr development environment according to the official documentation.
 
 ```sh
-west init -m https://git.leon.fyi/sam-fd-sdk --mr main sam-fd-workspace
+west init -m https://git.leon.fyi/sam-fd-sdk --mr main sam-fd-workspace # or
+west init -m https://github.com/leonrinkel/sam-fd-sdk --mr main sam-fd-workspace
 cd sam-fd-workspace
 west update
 ```
