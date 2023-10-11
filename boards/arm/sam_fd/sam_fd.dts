@@ -20,6 +20,23 @@
 		zephyr,sram = &sram0;
 		zephyr,flash = &flash0;
 	};
+
+	aliases {
+		rx-led = &rx_led;
+		tx-led = &tx_led;
+	};
+
+	leds {
+		compatible = "gpio-leds";
+		rx_led: led_0 {
+			gpios = <&porta 10 GPIO_ACTIVE_LOW>;
+			label = "Green RX LED";
+		};
+		tx_led: led_1 {
+			gpios = <&porta 9 GPIO_ACTIVE_LOW>;
+			label = "Green TX LED";
+		};
+	};
 };
 
 &cpu0 {
