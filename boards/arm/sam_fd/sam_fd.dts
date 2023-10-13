@@ -19,6 +19,7 @@
 		zephyr,shell-uart = &sercom0;
 		zephyr,sram = &sram0;
 		zephyr,flash = &flash0;
+		zephyr,canbus = &can0;
 	};
 
 	aliases {
@@ -36,6 +37,14 @@
 			gpios = <&porta 9 GPIO_ACTIVE_LOW>;
 			label = "Green TX LED";
 		};
+	};
+
+	can_phy0: can-phy0 {
+		compatible = "nxp,tja1443", "can-transceiver-gpio";
+		enable-gpios = <&porta 18 GPIO_ACTIVE_HIGH>;
+		standby-gpios = <&porta 27 GPIO_ACTIVE_LOW>;
+		max-bitrate = <5000000>;
+		#phy-cells = <0>;
 	};
 };
 
@@ -65,4 +74,15 @@
 			reg = <0x0003c000 0x00004000>;
 		};
 	};
+};
+
+&can0 {
+	pinctrl-0 = <&can0_default>;
+	pinctrl-names = "default";
+	phys = <&can_phy0>;
+	bus-speed = <125000>;
+	sample-point = <875>;
+	bus-speed-data = <1000000>;
+	sample-point-data = <875>;
+	status = "okay";
 };

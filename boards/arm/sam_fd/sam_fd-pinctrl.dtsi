@@ -13,4 +13,11 @@
 				 <PA6D_SERCOM0_PAD2>;
 		};
 	};
+
+	can0_default: can0_default {
+		group1 {
+			pinmux = <PA25G_CAN0_RX>,
+				 <PA24G_CAN0_TX>;
+		};
+	};
 };
