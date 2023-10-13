@@ -101,9 +101,9 @@ int main(void)
 	}
 
 	err = can_add_rx_filter(can_dev, can_rx_callback, NULL, &filter);
-	if (filter_id < 0)
+	if (err < 0)
 	{
-		printk("unable to add filter (err %d)\n", filter_id);
+		printk("unable to add filter (err %d)\n", err);
 		return 0;
 	}
 
