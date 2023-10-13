@@ -5,17 +5,29 @@
  */
 
 #include <zephyr/kernel.h>
+#include <zephyr/sys_clock.h>
 #include <zephyr/device.h>
 #include <zephyr/devicetree.h>
-#include <zephyr/drivers/gpio.h>
 #include <zephyr/drivers/can.h>
+#include <zephyr/drivers/led.h>
 
 #include <app_version.h>
 
-#define RX_LED_NODE DT_ALIAS(rx_led)
-static const struct gpio_dt_spec rx_led = GPIO_DT_SPEC_GET(RX_LED_NODE, gpios);
-#define TX_LED_NODE DT_ALIAS(tx_led)
-static const struct gpio_dt_spec tx_led = GPIO_DT_SPEC_GET(TX_LED_NODE, gpios);
+static const struct device* led_dev =
+	DEVICE_DT_GET(DT_PARENT(DT_ALIAS(rx_led)));
+#define RX_LED_IDX DT_NODE_CHILD_IDX(DT_NODELABEL(rx_led))
+#define TX_LED_IDX DT_NODE_CHILD_IDX(DT_NODELABEL(tx_led))
+
+#define LED_MIN_TIME_ON K_MSEC(10)
+#define LED_MIN_TIME_OFF K_MSEC(100)
+
+static int rx_led_on = 0;
+static k_timepoint_t till_turn_rx_led_off;
+static k_timepoint_t till_turn_rx_led_on;
+
+static int tx_led_on = 0;
+static k_timepoint_t till_turn_tx_led_off;
+static k_timepoint_t till_turn_tx_led_on;
 
 #define CANBUS_NODE DT_CHOSEN(zephyr_canbus)
 static const struct device* can_dev = DEVICE_DT_GET(CANBUS_NODE);
@@ -25,10 +37,18 @@ static void can_rx_callback(
 {
 	int err;
 
-	err = gpio_pin_toggle_dt(&rx_led);
-	if (err < 0)
+	if (
+		!rx_led_on &&
+		sys_timepoint_expired(till_turn_rx_led_on)
+	)
 	{
-		printk("unable to toggle rx led (err %d)\n", err);
+		err = led_on(led_dev, RX_LED_IDX);
+		if (!err)
+		{
+			rx_led_on = 1;
+			till_turn_rx_led_off =
+				sys_timepoint_calc(LED_MIN_TIME_ON);
+		}
 	}
 
 	printk("can %8x %2d", frame->id, frame->dlc);
@@ -44,16 +64,26 @@ static void can_tx_callback(
 {
 	int err;
 
-	err = gpio_pin_toggle_dt(&tx_led);
-	if (err < 0)
+	if (
+		!tx_led_on &&
+		sys_timepoint_expired(till_turn_tx_led_on)
+	)
 	{
-		printk("unable to toggle tx led (err %d)\n", err);
+		err = led_on(led_dev, TX_LED_IDX);
+		if (!err)
+		{
+			tx_led_on = 1;
+			till_turn_tx_led_off =
+				sys_timepoint_calc(LED_MIN_TIME_ON);
+		}
 	}
 }
 
 int main(void)
 {
 	int err;
+	k_timepoint_t till_transmit =
+		sys_timepoint_calc(K_NO_WAIT);
 	struct can_frame frame = {0};
 	const struct can_filter filter =
 	{
@@ -63,29 +93,16 @@ int main(void)
 
 	printk("sam-fd example application %s\n", APP_VERSION_STRING);
 
-	if (!gpio_is_ready_dt(&rx_led))
+	if (!device_is_ready(led_dev))
 	{
-		printk("rx led node not ready\n");
-		return 0;
-	}
-	if (!gpio_is_ready_dt(&tx_led))
-	{
-		printk("tx led node not ready\n");
+		printk("led device not ready\n");
 		return 0;
 	}
 
-	err = gpio_pin_configure_dt(&rx_led, GPIO_OUTPUT_ACTIVE);
-	if (err < 0)
-	{
-		printk("unable to configure rx led (err %d)\n", err);
-		return 0;
-	}
-	err = gpio_pin_configure_dt(&tx_led, GPIO_OUTPUT_INACTIVE);
-	if (err < 0)
-	{
-		printk("unable to configure tx led (err %d)\n", err);
-		return 0;
-	}
+	till_turn_rx_led_on = sys_timepoint_calc(K_NO_WAIT);
+	till_turn_rx_led_off = sys_timepoint_calc(K_NO_WAIT);
+	till_turn_tx_led_on = sys_timepoint_calc(K_NO_WAIT);
+	till_turn_tx_led_off = sys_timepoint_calc(K_NO_WAIT);
 
 	if (!device_is_ready(can_dev))
 	{
@@ -117,23 +134,57 @@ int main(void)
 	frame.id = 0x456;
 	frame.flags |= CAN_FRAME_FDF;
 	frame.flags |= CAN_FRAME_BRS;
-	frame.dlc = 3;
+	frame.dlc = 4;
 
 	for (unsigned int i = 0;; i++)
 	{
-		printk("hello world %d\n", i);
-
-		frame.data[0] = (i & 0xFFu);
-		frame.data[1] = (i & 0xFFu);
-		frame.data[2] = (i & 0xFFu);
-		err = can_send(can_dev, &frame,
-			K_NO_WAIT, can_tx_callback, NULL);
-		if (err < 0)
+		if (
+			rx_led_on &&
+			sys_timepoint_expired(till_turn_rx_led_off)
+		)
 		{
-			printk("failed to enqueue can frame (err %d)\n", err);
+			err = led_off(led_dev, RX_LED_IDX);
+			if (!err)
+			{
+				rx_led_on = 0;
+				till_turn_rx_led_on =
+					sys_timepoint_calc(LED_MIN_TIME_OFF);
+			}
 		}
 
-		k_sleep(K_MSEC(1000));
+		if (
+			tx_led_on &&
+			sys_timepoint_expired(till_turn_tx_led_off)
+		)
+		{
+			err = led_off(led_dev, TX_LED_IDX);
+			if (!err)
+			{
+				tx_led_on = 0;
+				till_turn_tx_led_on =
+					sys_timepoint_calc(LED_MIN_TIME_OFF);
+			}
+		}
+
+		if (sys_timepoint_expired(till_transmit))
+		{
+			printk("hello world %d\n", i);
+
+			frame.data[0] = ((i >> 24) & 0xFFu);
+			frame.data[1] = ((i >> 16) & 0xFFu);
+			frame.data[2] = ((i >>  8) & 0xFFu);
+			frame.data[3] = ((i >>  0) & 0xFFu);
+			err = can_send(can_dev, &frame,
+				K_NO_WAIT, can_tx_callback, NULL);
+			if (err < 0)
+			{
+				printk("failed to enqueue can frame (err %d)\n", err);
+			}
+
+			till_transmit = sys_timepoint_calc(K_MSEC(1000));
+		}
+
+		k_sleep(K_MSEC(1));
 	}
 
 	return 0;

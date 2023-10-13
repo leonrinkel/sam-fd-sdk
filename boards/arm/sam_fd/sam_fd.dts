@@ -30,11 +30,11 @@
 	leds {
 		compatible = "gpio-leds";
 		rx_led: led_0 {
-			gpios = <&porta 10 GPIO_ACTIVE_LOW>;
+			gpios = <&porta 10 GPIO_ACTIVE_HIGH>;
 			label = "Green RX LED";
 		};
 		tx_led: led_1 {
-			gpios = <&porta 9 GPIO_ACTIVE_LOW>;
+			gpios = <&porta 9 GPIO_ACTIVE_HIGH>;
 			label = "Green TX LED";
 		};
 	};
