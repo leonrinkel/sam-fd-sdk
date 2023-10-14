@@ -3,5 +3,5 @@
 # SPDX-License-Identifier: Apache-2.0
 
 config BOARD_SAM_FD
-	bool "sam-fd"
+	bool "sam-fd Board"
 	depends on SOC_PART_NUMBER_SAMC21E16A

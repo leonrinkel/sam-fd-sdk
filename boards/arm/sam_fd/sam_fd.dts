@@ -12,7 +12,7 @@
 
 / {
 	model = "sam-fd";
-	compatible = "vendor,sam-fd";
+	compatible = "leonfyi,sam-fd";
 
 	chosen {
 		zephyr,console = &sercom0;
