@@ -19,9 +19,22 @@ west build -b sam_fd sam-fd-sdk/app
 
 ## Flashing
 
+### Using a Debugger
+
 ```sh
 west flash --runner jlink # or
 west flash --runner pyocd
+```
+
+### Via Serial Recovery
+
+Serial recovery mode can be entered by running a command like the following immediately after resetting. This requires a MCUboot bootloader. Please see [BOOTLOADER.md](BOOTLOADER.md) for instructions on building one.
+
+```sh
+mcumgr \
+    --conntype serial \
+    --connstring dev=/dev/cu.usbserial-110,baud=115200 \
+    image upload -e build/zephyr/zephyr.signed.bin
 ```
 
 ## License

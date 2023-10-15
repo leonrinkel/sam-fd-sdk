@@ -20,6 +20,7 @@
 		zephyr,sram = &sram0;
 		zephyr,flash = &flash0;
 		zephyr,canbus = &can0;
+		zephyr,code-partition = &slot0_partition;
 	};
 
 	aliases {
@@ -69,9 +70,13 @@
 		#address-cells = <1>;
 		#size-cells = <1>;
 
-		storage_partition: partition@3c000 {
-			label = "storage";
-			reg = <0x0003c000 0x00004000>;
+		boot_partition: partition@0 {
+			label = "mcuboot";
+			reg = <0x00000000 0x5000>;
+		};
+		slot0_partition: partition@5000 {
+			label = "image-0";
+			reg = <0x00005000 0xAFFF>;
 		};
 	};
 };
