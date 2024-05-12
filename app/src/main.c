@@ -85,11 +85,7 @@ int main(void)
 	k_timepoint_t till_transmit =
 		sys_timepoint_calc(K_NO_WAIT);
 	struct can_frame frame = {0};
-	const struct can_filter filter =
-	{
-		.flags = CAN_FILTER_DATA | CAN_FILTER_FDF,
-		.id = 0x123,
-	};
+	const struct can_filter filter = { .id = 0x123 };
 
 	printk("sam-fd example application %s\n", APP_VERSION_STRING);
 
